@@ -34,7 +34,7 @@
 #include <string>
 #include <vector>
 
-#include "pi3hat.h"
+#include "moteus_pi3hat/pi3hat.h"
 
 namespace mjbots {
 namespace pi3hat {

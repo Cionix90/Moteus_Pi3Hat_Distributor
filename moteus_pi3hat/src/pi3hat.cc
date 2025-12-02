@@ -14,7 +14,7 @@
 
 // We purposefully don't use the full path here so that this file can
 // be compiled in a wide range of build configurations.
-#include "pi3hat.h"
+#include "moteus_pi3hat/pi3hat.h"
 
 #include <errno.h>
 #include <fcntl.h>
