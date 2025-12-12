@@ -18,6 +18,8 @@ namespace mjbots
             kOutputVoltage = 0x010,
             kOutputCurrent = 0x011,
             kTemperature = 0x12,
+            kEnergy = 0x013,
+
         };
 
         enum State
@@ -25,7 +27,7 @@ namespace mjbots
             kPowerOff = 0,
             kPreCharging = 1,
             kPowerOn = 2,
-            kFault = 3
+            kFaultState = 3,
         };
         struct Query
         {
@@ -39,6 +41,7 @@ namespace mjbots
                 double output_voltage = 0;
                 double output_current = 0;
                 double temperature = 0;
+                double energy =0;
             };
 
             struct Format
@@ -51,6 +54,7 @@ namespace mjbots
                 moteus::Resolution output_voltage = moteus::Resolution::kFloat;
                 moteus::Resolution output_current = moteus::Resolution::kFloat;
                 moteus::Resolution temperature = moteus::Resolution::kIgnore;
+                moteus::Resolution energy = moteus::Resolution::kIgnore;
 
             };
 
@@ -81,6 +85,7 @@ namespace mjbots
                         format.output_voltage,
                         format.output_current,
                         format.temperature,
+                        format.energy
                     };
                     const uint16_t kResolutionSize = sizeof(kResolutions)/sizeof(*kResolutions);
                     moteus::WriteCombiner combiner( 
@@ -159,11 +164,37 @@ namespace mjbots
                             result.temperature = parser->ReadTemperature(res);
                             break;
                         }
+                        case DRegister::kEnergy:
+                        {
+                            result.energy = parser->ReadEnergy(res);
+                            break;
+                        }
 
                     }
                 }
 
             }
+        };
+        struct StateCommand
+        {
+            struct Command
+            {
+                int state = 2;
+            };
+            struct Format
+            {
+                mjbots::moteus::Resolution state = mjbots::moteus::Resolution::kInt8;
+            };
+            static uint8_t Make(moteus::WriteCanData* frame,
+                                const Command& command,
+                                const Format& format
+                            )
+            {
+                frame->Write<int8_t>(moteus::Multiplex::kWriteInt8 | 0x01);
+                frame->Write<int8_t>(power_distributor::DRegister::kState);
+                frame->Write<int8_t>(command.state == 0 ? power_distributor::State::kPowerOff : power_distributor::State::kPowerOn );
+                return 0;
+            };
         };
     }
 }

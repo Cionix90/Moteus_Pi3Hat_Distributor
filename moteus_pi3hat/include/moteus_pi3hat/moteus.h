@@ -26,6 +26,7 @@
 #include "moteus_protocol.h"
 #include "moteus_tokenizer.h"
 #include "moteus_transport.h"
+#include "power_distributor_protocol.h"
 
 namespace mjbots {
 namespace moteus {
@@ -74,6 +75,7 @@ class Controller {
     CurrentMode::Format current_format;
     StayWithinMode::Format stay_within_format;
     ZeroVelocityMode::Format zero_velocity_format;
+    power_distributor::Query::Format power_distributor_query_format;
 
     // Use the given prefix for all CAN IDs.
     uint32_t can_prefix = 0x0000;
@@ -98,6 +100,8 @@ class Controller {
 
     WriteCanData query_write(&query_frame_);
     query_reply_size_ = Query::Make(&query_write, options_.query_format);
+    WriteCanData pd_query_write(&pd_query_frame_);
+    pd_query_reply_size_ = power_distributor::Query::Make(&pd_query_write, options_.power_distributor_query_format);
   }
 
   const Options& options() const { return options_; }
@@ -158,6 +162,61 @@ class Controller {
     AsyncStartSingleCommand(MakeQuery(format_override), result, callback);
   }
 
+  /////////////////////////////////////////
+  // Power Distributor Query
+
+  CanFdFrame MakePDQuery(const power_distributor::Query::Format* format_override = nullptr)
+  {
+      auto result = DefaultFrame(
+        format_override != nullptr ? kReplyRequired :
+        options_.default_query ? kReplyRequired : kNoReply);
+
+    WriteCanData write_frame(result.data, &result.size);
+    
+    if (format_override) {
+      result.expected_reply_size =
+          power_distributor::Query::Make(&write_frame, *format_override);
+    } else if (options_.default_query) {
+      std::memcpy(&result.data[result.size],
+                  &pd_query_frame_.data[0],
+                  pd_query_frame_.size);
+      result.size += pd_query_frame_.size;
+      result.expected_reply_size = query_reply_size_;
+    }
+
+    return result;
+            
+  }
+
+  /////////////////////////////////////////
+  // Power Distributor Command
+
+
+  CanFdFrame MakePDCommand(
+    const power_distributor::StateCommand::Command& cmd,
+    const power_distributor::StateCommand::Format& fmt,
+    const power_distributor::Query::Format* format_override = nullptr
+  )
+  {
+      auto result = DefaultFrame(
+        format_override != nullptr ? kReplyRequired :
+        options_.default_query ? kReplyRequired : kNoReply);
+    WriteCanData write_frame(result.data, &result.size);
+    result.expected_reply_size = power_distributor::StateCommand::Make(&write_frame,cmd ,fmt );
+    if (format_override) {
+      result.expected_reply_size =
+          power_distributor::Query::Make(&write_frame, *format_override);
+    } else if (options_.default_query) {
+      std::memcpy(&result.data[result.size],
+                  &pd_query_frame_.data[0],
+                  pd_query_frame_.size);
+      result.size += pd_query_frame_.size;
+      result.expected_reply_size = query_reply_size_;
+    }
+
+    return result;
+            
+  }
 
   /////////////////////////////////////////
   // StopMode
@@ -1137,8 +1196,8 @@ class Controller {
 
   const Options options_;
   std::shared_ptr<Transport> transport_;
-  CanData query_frame_;
-  uint8_t query_reply_size_ = 0;
+  CanData query_frame_, pd_query_frame_;
+  uint8_t query_reply_size_ = 0, pd_query_reply_size_ = 0;
   CanFdFrame output_frame_;
 
   // This is a member variable so we can avoid re-allocating it on

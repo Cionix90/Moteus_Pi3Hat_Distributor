@@ -182,7 +182,6 @@ class Pi3HatMoteusTransport : public moteus::Transport {
       std::memcpy(can.data, cmd.data, cmd.size);
       can.expected_reply_size = cmd.expected_reply_size;
     }
-
     pi3hat::Pi3Hat::Input input =
         cycle_data_.input_override ?
         *cycle_data_.input_override :
@@ -191,9 +190,7 @@ class Pi3HatMoteusTransport : public moteus::Transport {
     input.rx_can = { rx_can_.data(), rx_can_.size() };
     input.attitude = cycle_data_.attitude;
     if (input.attitude) { input.request_attitude = true; }
-
     const auto output = pi3hat_->Cycle(input);
-
     if (cycle_data_.pi3hat_output) { *cycle_data_.pi3hat_output = output; }
     if (cycle_data_.replies) {
       cycle_data_.replies->clear();

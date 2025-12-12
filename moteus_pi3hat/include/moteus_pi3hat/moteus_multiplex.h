@@ -451,7 +451,7 @@ class MultiplexParser {
   static constexpr int8_t kTheta = 9;
   static constexpr int8_t kPower = 10;
   static constexpr int8_t kAcceleration = 11;
-
+  static constexpr int8_t kEnergy = 11;
   double ReadConcrete(Resolution res, int8_t concrete_type) {
 #ifndef ARDUINO
     static constexpr double kMappingValues[] = {
@@ -470,6 +470,8 @@ class MultiplexParser {
       1.0 / 127.0 * M_PI, 1.0 / 32767.0 * M_PI, 1.0 / 2147483647.0 * M_PI, // kTheta
       10.0, 0.05, 0.0001,      // kPower
       0.05, 0.001, 0.00001,    // kAcceleration
+      1.0, 0.01,  0.00001      //kEnergy
+
     };
 
 #ifndef ARDUINO
@@ -541,6 +543,9 @@ class MultiplexParser {
 
   double ReadPower(Resolution res) {
     return ReadConcrete(res, kPower);
+  }
+  double ReadEnergy(Resolution res) {
+    return ReadConcrete(res, kEnergy);
   }
 
   void Ignore(Resolution res) {
